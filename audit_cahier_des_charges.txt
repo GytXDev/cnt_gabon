@@ -1,0 +1,84 @@
+Bonjour, voici la liste des choses qui sont faites et pas faites.
+
+================================================================================
+AUDIT DE L'IMPLÉMENTATION DU CAHIER DES CHARGES - APPLICATION CNT GABON
+================================================================================
+
+1. BILLETTERIE & ACHAT DE TICKETS
+--------------------------------------------------------------------------------
+[FAIT]
+- Formulaire de recherche et de sélection de billets sur la page d'accueil.
+- Page d'achat et de validation du passager (achat-billet).
+- Intégration du paiement par Mobile Money (Airtel Money et Moov Money) via Singpay (simulation et vérification du statut de la transaction).
+- API d'enregistrement du ticket en base de données (/api/tickets/create).
+- Génération d'un QR Code encodé contenant les données du ticket (nom, prénom, prix, trajet, heure de départ/arrivée estimée) pour vérification hors-ligne.
+- Page de téléchargement et d'impression du billet avec QR Code.
+
+[NON FAIT / À FAIRE]
+- Paiement par Carte Bancaire (le formulaire et l'intégration Singpay ne gèrent actuellement que le Mobile Money).
+
+
+2. ESPACE CLIENT (MON ESPACE)
+--------------------------------------------------------------------------------
+[FAIT]
+- Synchronisation automatique de l'utilisateur Clerk vers la base de données interne (/api/users/sync).
+- Page "Mon Espace" listant l'historique complet des billets achetés par l'utilisateur connecté.
+- Statistiques globales (Total de billets, valides, utilisés, annulés).
+- Partage du lien de vérification par copie de lien ou partage WhatsApp.
+
+[NON FAIT / À FAIRE]
+- Page de détails du ticket dans l'espace client : le clic sur un ticket dans l'historique redirige vers une page inexistante (404 à l'adresse /mon-espace/ticket/[ref]).
+- Transfert ou partage de propriété réel du billet d'un compte utilisateur vers un autre (les colonnes existent dans la base de données mais l'interface et l'API de transfert ne sont pas implémentées).
+
+
+3. TCHAT INTER-PASSAGERS
+--------------------------------------------------------------------------------
+[FAIT]
+- Espace de tchat opérationnel accessible via un identifiant de salon unique (basé sur le numéro de trajet et la date).
+- Sauvegarde et récupération des messages en base de données via l'API (/api/chat/[roomId]).
+- Polling régulier de l'interface toutes les 3 secondes pour un affichage en temps réel.
+
+[NON FAIT / À FAIRE]
+- Désactivation automatique du tchat à l'arrivée du bus ou en cas d'annulation du ticket (le salon reste ouvert sans limite).
+- Mode hors-ligne avec synchronisation différée (si la connexion est perdue, le tchat est désactivé et l'utilisateur ne peut pas stocker localement des messages pour envoi ultérieur).
+
+
+4. GÉOLOCALISATION
+--------------------------------------------------------------------------------
+[FAIT]
+- Suivi du bus en direct avec carte interactive OpenStreetMap (via iframe).
+- Calcul des distances parcourue/restante, vitesse actuelle et heure estimée d'arrivée.
+- API d'historisation des positions GPS en base de données (/api/buses/[busId]/position).
+
+[NON FAIT / À FAIRE]
+- Interface ou application chauffeur dédiée pour envoyer la position GPS réelle du bus (actuellement la position est simulée dynamiquement côté client passager).
+
+
+5. ZONES DE SERVICE
+--------------------------------------------------------------------------------
+[FAIT]
+- Liste des villes et affectation aux zones "Grand Libreville" (Libreville, Owendo, Akanda) et "Intérieur du pays" (Lambaréné, Mouila, etc.) configurées dans l'application.
+
+
+6. TARIFICATION & CLASSES DE TICKETS
+--------------------------------------------------------------------------------
+[FAIT]
+- Application de la tarification CDC en dur dans le formulaire principal.
+- Distinction des classes de tickets (VIP/Standard/Éco) dans le schéma de base de données.
+
+[NON FAIT / À FAIRE]
+- Choix de la classe de billet (VIP/Standard/Économique) dans l'interface d'achat (actuellement forcé en classe "Économique").
+- Chargement dynamique des tarifs et trajets depuis les tables SQL de la base de données (`routes` et `pass_types` sont actuellement vides et non exploitées par le formulaire).
+
+
+7. MULTILINGUE (i18n)
+--------------------------------------------------------------------------------
+[NON FAIT / À FAIRE]
+- Architecture de traduction et support multilingue pour la Phase 1 (Français, Fang, Myene) et extensibilité Phase 2 (Nzébi, Téké, Punu). L'application est actuellement uniquement en français.
+
+
+8. CONNEXION BDD & CONFIGURATION TECHNIQUE
+--------------------------------------------------------------------------------
+[FAIT]
+- Schéma Drizzle ORM complet (users, cities, routes, pass_types, tickets, buses, positions, messages).
+- Résolution du crash de build Vercel lié à la connexion Neon DB (initialisation sécurisée et résiliente en l'absence de variable d'environnement).

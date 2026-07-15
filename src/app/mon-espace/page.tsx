@@ -282,7 +282,7 @@ export default function MonEspacePage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             const roomId = `${ticket.ref.split('-')[1] || 'r'}_${ticket.date}`;
-                            router.push(`/chat/${roomId}?passager=${encodeURIComponent(ticket.passager)}&ref=${ticket.ref}`);
+                            router.push(`/chat/${roomId}?passager=${encodeURIComponent(ticket.passager)}&ref=${ticket.ref}&date=${ticket.date}`);
                           }}
                           className="p-2 rounded-xl bg-emerald-50 text-cnt-green hover:bg-emerald-100 transition-colors"
                           title="Tchat passagers"

@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { useUser } from '@clerk/nextjs';
 
 interface Message {
   id: number;
@@ -32,7 +33,12 @@ function ChatContent() {
   const roomId = params.roomId as string;
   const passager = searchParams.get('passager') || 'Passager';
   const ref = searchParams.get('ref') || '';
-  const date = searchParams.get('date') || '';
+
+  const dateQuery = searchParams.get('date') || '';
+  const dateFromRoom = roomId.split('_')[1] || '';
+  const date = dateQuery || dateFromRoom;
+
+  const { user, isSignedIn, isLoaded } = useUser();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -113,12 +119,9 @@ function ChatContent() {
 
       {/* BREADCRUMB / HEADER */}
       <div className="bg-cnt-blue shadow-md shrink-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-white/80 font-medium">
-            <span className="cursor-pointer hover:text-white transition-colors flex items-center gap-1" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4" />
-              Retour
-            </span>
+            <span className="cursor-pointer hover:text-white transition-colors" onClick={() => router.push("/")}>Accueil</span>
             <span className="text-white/40">/</span>
             <span className="text-[#F1C40F] font-semibold">Tchat Voyageurs</span>
           </div>
@@ -132,6 +135,14 @@ function ChatContent() {
               {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               {online ? 'Actif' : 'Déconnecté'}
             </div>
+            {isLoaded && isSignedIn && (
+              <a href="/mon-espace" className="flex items-center gap-2 text-sm text-white font-medium hover:text-[#F1C40F] transition-colors ml-1 border-l border-white/20 pl-3">
+                <div className="w-7 h-7 rounded-full bg-[#F1C40F]/20 border border-[#F1C40F] flex items-center justify-center text-[#F1C40F] text-[10px] font-bold">
+                  {user?.firstName?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="hidden sm:inline">Mon Espace</span>
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -139,7 +150,6 @@ function ChatContent() {
       {/* TRIP METADATA BAR */}
       <div className="bg-[#0A3055]/5 border-b border-gray-200/50 px-4 py-2 text-xs text-cnt-blue text-center font-medium shrink-0 flex items-center justify-center gap-3 flex-wrap">
         <div className="flex items-center gap-1.5">
-          <Bus className="w-3.5 h-3.5" />
           <span>Billet: <b>{ref}</b></span>
         </div>
         <span className="text-gray-300">|</span>

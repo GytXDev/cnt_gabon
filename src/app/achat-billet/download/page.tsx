@@ -217,7 +217,7 @@ function DownloadTicketContent() {
               <Button
                 onClick={() => {
                   const roomId = `${ref?.split('-')[1] || 'r'}_${date}`;
-                  router.push(`/chat/${roomId}?passager=${encodeURIComponent(passager)}&ref=${ref}`);
+                  router.push(`/chat/${roomId}?passager=${encodeURIComponent(passager)}&ref=${ref}&date=${date}`);
                 }}
                 className="w-full bg-cnt-green hover:bg-emerald-700 text-white gap-2 rounded-xl h-11 px-5 shadow-sm justify-center font-semibold"
               >
