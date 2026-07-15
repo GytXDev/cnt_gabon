@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNT Live GPS Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f5;
+    }
+    /* Google Maps style zoom controls */
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      border-radius: 8px !important;
+      overflow: hidden;
+    }
+    .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+      background-color: #ffffff !important;
+      color: #3f3f46 !important;
+      border: none !important;
+      font-weight: bold;
+    }
+    .leaflet-control-zoom-in {
+      border-bottom: 1px solid #e4e4e7 !important;
+    }
+    /* Sleek Custom popup design */
+    .leaflet-popup-content-wrapper {
+      border-radius: 14px !important;
+      padding: 6px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .leaflet-popup-tip {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+    }
+    .popup-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .popup-icon {
+      width: 32px;
+      height: 32px;
+      background-color: rgba(10, 48, 85, 0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0A3055;
+    }
+    .popup-title {
+      font-weight: 700;
+      color: #0A3055;
+      font-size: 13px;
+      margin: 0;
+    }
+    .popup-desc {
+      font-size: 11px;
+      color: #71717a;
+      margin: 2px 0 0 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialise Leaflet map (Libreville coordinates)
+    var map = L.map('map', { zoomControl: false }).setView([0.3924, 9.4536], 9);
+    
+    // CartoDB Voyager tiles (Looks exactly like a modern styled Google Maps style)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Route waypoint path Libreville -> Lambaréné
+    var routeWaypoints = [
+      [0.3924, 9.4536],
+      [0.2, 9.8],
+      [0.0, 10.0],
+      [-0.3, 10.1],
+      [-0.7, 10.2333]
+    ];
+
+    // Styled polyline representing the bus line (CNT Blue / Green gradient feel)
+    L.polyline(routeWaypoints, {
+      color: '#0A3055',
+      weight: 5,
+      opacity: 0.75,
+      lineJoin: 'round'
+    }).addTo(map);
+
+    // Also add Libreville and Lambaréné markers as start/end
+    L.circleMarker([0.3924, 9.4536], {
+      radius: 6,
+      fillColor: '#1E824C', // CNT Green
+      color: '#ffffff',
+      weight: 2,
+      fillOpacity: 1
+    }).addTo(map).bindPopup("<b>Libreville</b><br>Point de départ");
+
+    L.circleMarker([-0.7, 10.2333], {
+      radius: 6,
+      fillColor: '#F1C40F', // CNT Yellow
+      color: '#ffffff',
+      weight: 2,
+      fillOpacity: 1
+    }).addTo(map).bindPopup("<b>Lambaréné</b><br>Destination");
+
+    // Bus Tracking custom image icon
+    var busIcon = L.icon({
+      iconUrl: '/icons/bus_tracking.png',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
+    });
+
+    var busMarker = null;
+
+    // Center view helper
+    window.updateBusPosition = function(lat, lng, speed) {
+      var speedKmh = Math.round(speed) || 60;
+      var popupHtml = `
+        <div class="popup-container">
+          <div>
+            <h4 class="popup-title">Bus CNT en mouvement</h4>
+            <p class="popup-desc">Vitesse instantanée : <b>${speedKmh} km/h</b></p>
+          </div>
+        </div>
+      `;
+
+      if (!busMarker) {
+        busMarker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
+        busMarker.bindPopup(popupHtml).openPopup();
+      } else {
+        busMarker.setLatLng([lat, lng]);
+        busMarker.setPopupContent(popupHtml);
+      }
+      
+      // Pan to the bus position smoothly
+      map.panTo([lat, lng], { animate: true, duration: 1.5 });
+    };
+
+    // Load initial parameters from the query string
+    var urlParams = new URLSearchParams(window.location.search);
+    var initLat = parseFloat(urlParams.get('lat') || 0.3924);
+    var initLng = parseFloat(urlParams.get('lng') || 9.4536);
+    var initSpeed = parseFloat(urlParams.get('speed') || 60);
+    window.updateBusPosition(initLat, initLng, initSpeed);
+  </script>
+</body>
+</html>

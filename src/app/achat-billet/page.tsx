@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -28,6 +29,55 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 // ---------- HELPERS ----------
+
+function showCustomToast(
+  type: "error" | "info" | "success" | "warning",
+  title: string,
+  description?: string,
+  action?: { label: string; onClick: () => void }
+) {
+  toast.custom((t) => {
+    const bgTextClass = 
+      type === "error" ? "bg-red-50 text-red-600 border-red-100" :
+      type === "info" ? "bg-blue-50 text-blue-600 border-blue-100" :
+      type === "success" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+      "bg-amber-50 text-amber-600 border-amber-100";
+
+    return (
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-4 max-w-sm w-full font-sans">
+        <div className="flex items-start gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${bgTextClass}`}>
+            {type === "success" ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-800 text-sm">{title}</p>
+            {description && (
+              <p className="text-xs text-gray-500 mt-1 leading-normal">
+                {description}
+              </p>
+            )}
+          </div>
+        </div>
+        {action && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              action.onClick();
+              toast.dismiss(t);
+            }}
+            className="bg-[#0A3055] hover:bg-blue-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shrink-0 transition-colors shadow-sm"
+          >
+            {action.label}
+          </button>
+        )}
+      </div>
+    );
+  }, { duration: 8000 });
+}
 
 function getModeIcon(
   mode: string,
@@ -336,6 +386,8 @@ function TicketPreview({
 function AchatBilletContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
 
   const depart = searchParams.get("depart") || "";
   const arrivee = searchParams.get("arrivee") || "";
@@ -350,10 +402,18 @@ function AchatBilletContent() {
     setTicketRef(generateTicketRef());
   }, []);
 
-  // Formulaire
+  // Formulaire — pré-rempli depuis Clerk si disponible
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
   const [numero, setNumero] = useState("");
+
+  // Pré-remplissage depuis le compte Clerk
+  useEffect(() => {
+    if (user) {
+      if (user.firstName) setPrenom(user.firstName);
+      if (user.lastName) setNom(user.lastName);
+    }
+  }, [user]);
 
   // Paiement
   const [loading, setLoading] = useState(false);
@@ -414,13 +474,13 @@ function AchatBilletContent() {
 
           if (isError) {
             setMessage({ type: "error", text: raw });
-            toast.error(raw, { duration: 6000 });
+            showCustomToast("error", "Erreur de paiement", raw);
             setStep("error");
             setLoading(false);
             return;
           } else if (isSuccess) {
             setStep("success");
-            toast.success("Billet réservé et paiement validé avec succès !");
+            showCustomToast("success", "Paiement validé", "Votre billet a été réservé avec succès !");
             setLoading(false);
             // Rediriger vers la page de téléchargement
             const params = new URLSearchParams({
@@ -466,7 +526,7 @@ function AchatBilletContent() {
           type: "error",
           text: timeoutText,
         });
-        toast.error(timeoutText);
+        showCustomToast("error", "Délai dépassé", timeoutText);
         setStep("error");
         setLoading(false);
       }
@@ -480,28 +540,28 @@ function AchatBilletContent() {
     e.preventDefault();
     if (!isFormValid) return;
 
+    if (!isSignedIn) {
+      showCustomToast("error", "Connexion requise", "Veuillez vous connecter pour valider votre achat.", {
+        label: "Se connecter",
+        onClick: () => openSignIn(),
+      });
+      return;
+    }
+
     let normalizedNum = numero.trim();
     if (!normalizedNum.startsWith("0")) {
       normalizedNum = "0" + normalizedNum;
     }
 
-    // Moov Money: 065, 066, 062, 060 (or 65, 66, 62, 60)
-    const isMoov = /^(065|066|062|060|65|66|62|60)/.test(normalizedNum);
-    // Airtel Money: 074, 077, 076 (or 74, 77, 76)
-    const isAirtel = /^(074|077|076|74|77|76)/.test(normalizedNum);
+    // Airtel Money: 074, 077, 076 | Moov Money: 065, 066, 062, 060, 063
+    const isAirtel = /^0(74|77|76)/.test(normalizedNum);
+    const isMoov = /^0(65|66|62|60|63)/.test(normalizedNum);
 
-    if (isMoov) {
-      toast.error(
-        "Le paiement via Moov Money est en cours d'intégration. Veuillez utiliser un compte Airtel Money (074, 077, 076).",
-        { duration: 8000 }
-      );
-      return;
-    }
-
-    if (!isAirtel) {
-      toast.error(
-        "Veuillez utiliser un compte Airtel Money (074, 077, 076) pour le paiement.",
-        { duration: 6000 }
+    if (!isAirtel && !isMoov) {
+      showCustomToast(
+        "error",
+        "Numéro non reconnu",
+        "Utilisez un numéro Airtel Money (074, 077, 076) ou Moov Money (065, 066, 062, 060, 063)."
       );
       return;
     }
@@ -525,7 +585,7 @@ function AchatBilletContent() {
           type: "info",
           text: successInitMsg,
         });
-        toast.info(successInitMsg);
+        showCustomToast("info", "Paiement initié", successInitMsg);
         pollStatus(data.transactionId);
       } else {
         const errorInitMsg = data.message || "Erreur lors de l'initialisation du paiement.";
@@ -533,7 +593,7 @@ function AchatBilletContent() {
           type: "error",
           text: errorInitMsg,
         });
-        toast.error(errorInitMsg);
+        showCustomToast("error", "Erreur d'initialisation", errorInitMsg);
         setStep("error");
         setLoading(false);
       }
@@ -543,7 +603,7 @@ function AchatBilletContent() {
         type: "error",
         text: connErrMsg,
       });
-      toast.error(connErrMsg);
+      showCustomToast("error", "Erreur de connexion", connErrMsg);
       setStep("error");
       setLoading(false);
     }
@@ -759,7 +819,6 @@ function AchatBilletContent() {
                     </>
                   ) : step === "success" ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
                       Paiement validé !
                     </>
                   ) : (

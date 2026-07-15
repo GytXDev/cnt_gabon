@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser, useClerk } from '@clerk/nextjs';
 import Image from 'next/image';
-import { MapPin, Calendar as CalendarIcon, Ticket } from 'lucide-react';
+import { MapPin, Calendar as CalendarIcon, Ticket, Lock, ArrowRight } from 'lucide-react';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -15,29 +16,63 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const DESTINATIONS = [
-  "Libreville", "Port-Gentil", "Franceville", "Oyem", "Moanda",
-  "Mouila", "Lambaréné", "Tchibanga", "Koulamoutou", "Makokou",
-  "Bitam", "Gamba", "Ntoum", "Ndjolé", "Mitzic",
-  "Mayumba", "Omboué", "Cocobeach"
+// ─── Villes ────────────────────────────────────────────────────────────────
+const DESTINATIONS_GL = ["Libreville", "Owendo", "Akanda"];
+const DESTINATIONS_INTERIEUR = ["Lambaréné", "Mouila", "Lebamba", "Tchibanga", "Makokou", "Oyem", "Bitam"];
+const ALL_DESTINATIONS = [...DESTINATIONS_GL, ...DESTINATIONS_INTERIEUR];
+
+// ─── Tarification officielle CDC ───────────────────────────────────────────
+
+// Catégorie 1 : Pass Grand Libreville (pas de route fixe)
+const PASS_GL: Record<string, number> = {
+  'Trajet simple (Grand Libreville)': 200,
+  'Passe journalier': 1000,
+  'Passe élève': 5000,
+  'Passe étudiant': 8000,
+  'Passe mensuel': 17000,
+  'Passe familial': 35000,
+};
+
+// Catégorie 2 : Trajets intérieur (route fixe Libreville → ville)
+// Format : { label, montant, arrivee }
+const TRAJETS_INTERIEUR: { label: string; montant: number; arrivee: string }[] = [
+  { label: 'Libreville–Lambaréné', montant: 5000, arrivee: 'Lambaréné' },
+  { label: 'Libreville–Mouila', montant: 8000, arrivee: 'Mouila' },
+  { label: 'Libreville–Lebamba', montant: 10000, arrivee: 'Lebamba' },
+  { label: 'Libreville–Tchibanga', montant: 12000, arrivee: 'Tchibanga' },
+  { label: 'Libreville–Makokou', montant: 12000, arrivee: 'Makokou' },
+  { label: 'Libreville–Oyem', montant: 12000, arrivee: 'Oyem' },
+  { label: 'Libreville–Bitam', montant: 13000, arrivee: 'Bitam' },
 ];
 
-const TICKET_TYPES: Record<string, number> = {
-  'Tarif simple': 1500,
-  'Passe Etudiant': 1000,
-  'Passe Eleve': 500,
-  'Tarif Retraité': 1000,
-  'Passe Journalier': 3000,
-  'Passe Mensuel': 25000,
-  'Passe Familial (3 pers.)': 4000
-};
+function getMontant(type: string): number {
+  if (type in PASS_GL) return PASS_GL[type];
+  const t = TRAJETS_INTERIEUR.find(t => t.label === type);
+  return t ? t.montant : 200;
+}
+
+function isTrajetInterieur(type: string): boolean {
+  return TRAJETS_INTERIEUR.some(t => t.label === type);
+}
 
 export default function Home() {
   const router = useRouter();
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { openSignUp, openSignIn } = useClerk();
+
+  const handleSuiviClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isSignedIn) {
+      openSignIn();
+    } else {
+      router.push('/suivi');
+    }
+  };
+
   const [transportMode, setTransportMode] = useState('bus');
   const [departure, setDeparture] = useState('Libreville');
-  const [arrival, setArrival] = useState('Oyem');
-  const [ticketType, setTicketType] = useState('Tarif simple');
+  const [arrival, setArrival] = useState('');
+  const [ticketType, setTicketType] = useState(''); // vide = placeholder affiché
   const [date, setDate] = useState<Date>();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -47,19 +82,48 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Quand on choisit un trajet intérieur ou pass GL → auto-fill + lock
+  const handleTicketTypeChange = (value: string) => {
+    setTicketType(value);
+    if (isTrajetInterieur(value)) {
+      const trajet = TRAJETS_INTERIEUR.find(t => t.label === value)!;
+      setDeparture('Libreville');
+      setArrival(trajet.arrivee);
+    } else if (value in PASS_GL) {
+      setDeparture('Libreville');
+      setArrival('Libreville');
+    } else {
+      setArrival('');
+    }
+  };
+
+  const routeLocked = isTrajetInterieur(ticketType) || ticketType in PASS_GL;
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!ticketType) {
+      toast.error("Veuillez sélectionner un type de billet.");
+      return;
+    }
     if (!date) {
       toast.error("Veuillez sélectionner une date de départ.");
       return;
     }
+    if (!arrival && !routeLocked) {
+      toast.error("Veuillez sélectionner une ville d'arrivée.");
+      return;
+    }
+
+
+
     const params = new URLSearchParams({
       depart: departure,
-      arrivee: arrival,
+      arrivee: arrival || departure,
       type: ticketType,
       mode: transportMode,
       date: format(date, 'yyyy-MM-dd'),
-      montant: TICKET_TYPES[ticketType].toString(),
+      montant: getMontant(ticketType).toString(),
     });
     router.push(`/achat-billet?${params.toString()}`);
   };
@@ -77,12 +141,32 @@ export default function Home() {
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Accueil</a>
-              <a href="#" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Trajets & Horaires</a>
-              <div className="flex items-center space-x-6 ml-4 border-l border-white/20 pl-6">
-                <a href="#" className="text-white font-medium hover:text-cnt-yellow transition-colors drop-shadow">Se connecter</a>
-                <Button className="bg-cnt-yellow hover:bg-yellow-500 text-cnt-blue font-bold px-6 shadow-lg hover:shadow-xl transition-all">
-                  Créer un compte
-                </Button>
+              <a href="#" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Trajets &amp; Horaires</a>
+              <a href="/suivi" onClick={handleSuiviClick} className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Suivi GPS</a>
+              <div className="flex items-center space-x-4 ml-4 border-l border-white/20 pl-6">
+                {isLoaded && isSignedIn ? (
+                  <a href="/mon-espace" className="flex items-center gap-2 text-white font-medium hover:text-cnt-yellow transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-cnt-yellow/20 border border-cnt-yellow flex items-center justify-center text-cnt-yellow text-xs font-bold">
+                      {user.firstName?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                    Mon Espace
+                  </a>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => openSignIn()}
+                      className="text-white font-medium hover:text-cnt-yellow transition-colors drop-shadow"
+                    >
+                      Se connecter
+                    </button>
+                    <Button
+                      onClick={() => openSignUp()}
+                      className="bg-cnt-yellow hover:bg-yellow-500 text-cnt-blue font-bold px-6 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Créer un compte
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -91,12 +175,9 @@ export default function Home() {
 
       {/* HERO SECTION */}
       <section className="relative min-h-[680px] flex flex-col justify-center pt-20 pb-16 overflow-hidden">
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: 'url("/hero_gabon_landscape.png")' }}
-        ></div>
-        <div className="absolute inset-0 z-0 bg-cnt-blue/80 mix-blend-multiply"></div>
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-transparent to-black/30"></div>
+        <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url("/hero_gabon_landscape.png")' }} />
+        <div className="absolute inset-0 z-0 bg-cnt-blue/80 mix-blend-multiply" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-transparent to-black/30" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full mt-8">
           <div className="text-center max-w-3xl mx-auto mb-10">
@@ -133,58 +214,103 @@ export default function Home() {
 
             {/* SEARCH FORM */}
             <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-4 md:p-5 border border-white/20">
-              <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-3">
 
-                {/* DÉPART */}
-                <div className="space-y-1 relative">
+                {/* ── DÉPART ── */}
+                <div className="space-y-1 relative md:col-span-2">
                   <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Départ</Label>
                   <div className="relative">
                     <Image src="/icons/origin.png" alt="Départ" width={16} height={16} className="absolute left-3 top-3.5 z-10 opacity-80 object-contain" />
-                    <Select value={departure} onValueChange={setDeparture}>
-                      <SelectTrigger className="pl-9 bg-gray-50/50 hover:bg-white focus:bg-white h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm">
-                        <SelectValue placeholder="Départ" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {DESTINATIONS.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    {routeLocked ? (
+                      // Champ verrouillé pour les trajets intérieur
+                      <div className="pl-9 pr-8 flex items-center h-[46px] border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500 font-medium select-none relative">
+                        Libreville
+                        <Lock className="w-3.5 h-3.5 text-gray-300 absolute right-3" />
+                      </div>
+                    ) : (
+                      <Select value={departure} onValueChange={setDeparture}>
+                        <SelectTrigger className="w-full overflow-hidden pl-9 bg-gray-50/50 hover:bg-white focus:bg-white !h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm">
+                          <SelectValue placeholder="Ville de départ" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Grand Libreville</div>
+                          {DESTINATIONS_GL.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                          <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 border-t border-gray-100 pt-2">Intérieur du pays</div>
+                          {DESTINATIONS_INTERIEUR.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 
-                {/* ARRIVÉE */}
-                <div className="space-y-1 relative">
+                {/* ── ARRIVÉE ── */}
+                <div className="space-y-1 relative md:col-span-2">
                   <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Arrivée</Label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-cnt-blue absolute left-3 top-3 z-10 opacity-80" />
-                    <Select value={arrival} onValueChange={setArrival}>
-                      <SelectTrigger className="pl-9 bg-gray-50/50 hover:bg-white focus:bg-white h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm">
-                        <SelectValue placeholder="Arrivée" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {DESTINATIONS.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    {routeLocked ? (
+                      // Champ verrouillé
+                      <div className="pl-9 pr-8 flex items-center h-[46px] border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500 font-medium select-none relative">
+                        {arrival}
+                        <Lock className="w-3.5 h-3.5 text-gray-300 absolute right-3" />
+                      </div>
+                    ) : (
+                      <Select value={arrival} onValueChange={setArrival}>
+                        <SelectTrigger className={cn(
+                          "w-full overflow-hidden pl-9 bg-gray-50/50 hover:bg-white focus:bg-white !h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm",
+                          !arrival && "text-gray-400"
+                        )}>
+                          <SelectValue placeholder="Ville d'arrivée" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Grand Libreville</div>
+                          {DESTINATIONS_GL.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                          <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 border-t border-gray-100 pt-2">Intérieur du pays</div>
+                          {DESTINATIONS_INTERIEUR.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 
-                {/* TYPE DE PASS */}
-                <div className="space-y-1 relative">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Type de Pass</Label>
+                {/* ── TYPE DE PASS ── */}
+                <div className="space-y-1 relative md:col-span-3">
+                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Type de billet</Label>
                   <div className="relative">
                     <Ticket className="w-4 h-4 text-cnt-yellow absolute left-3 top-3 z-10 opacity-80" />
-                    <Select value={ticketType} onValueChange={setTicketType}>
-                      <SelectTrigger className="pl-9 bg-gray-50/50 hover:bg-white focus:bg-white h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm">
-                        <SelectValue placeholder="Pass" />
+                    <Select value={ticketType} onValueChange={handleTicketTypeChange}>
+                      <SelectTrigger className={cn(
+                        "w-full overflow-hidden pl-9 bg-gray-50/50 hover:bg-white focus:bg-white !h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm",
+                        !ticketType && "text-gray-400"
+                      )}>
+                        <SelectValue placeholder="Choisir un billet…" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(TICKET_TYPES).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      <SelectContent className="max-h-72">
+                        {/* GRAND LIBREVILLE */}
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                          Grand Libreville
+                        </div>
+                        {Object.entries(PASS_GL).map(([label]) => (
+                          <SelectItem key={label} value={label}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                        {/* INTÉRIEUR */}
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 border-t border-gray-100 pt-2">
+                          Intérieur du pays
+                        </div>
+                        {TRAJETS_INTERIEUR.map(({ label }) => (
+                          <SelectItem key={label} value={label}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {/* DATE */}
-                <div className="space-y-1 relative flex flex-col">
+                {/* ── DATE ── */}
+                <div className="space-y-1 relative flex flex-col md:col-span-3">
                   <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Date</Label>
                   <Popover>
                     <PopoverTrigger
@@ -195,17 +321,32 @@ export default function Home() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-gray-500 opacity-80" />
-                      {date ? format(date, "P", { locale: fr }) : <span>Date</span>}
+                      {date ? format(date, "P", { locale: fr }) : <span>Choisir une date</span>}
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 z-[100] rounded-xl overflow-hidden shadow-2xl">
-                      <Calendar mode="single" selected={date} onSelect={setDate} locale={fr} />
+                      <Calendar
+                         mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        locale={fr}
+                        disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>
 
-                {/* BOUTON */}
-                <div className="flex items-end">
-                  <Button type="submit" className="w-full bg-cnt-green hover:bg-[#15673a] text-white font-medium text-sm rounded-xl shadow-md hover:shadow-lg h-[46px]">
+                {/* ── BOUTON RÉSERVER ── */}
+                <div className="flex items-end md:col-span-2">
+                  <Button
+                    type="submit"
+                    disabled={!ticketType}
+                    className={cn(
+                      "w-full font-semibold text-sm rounded-xl shadow-md h-[46px] flex items-center justify-center gap-2 transition-all",
+                      ticketType
+                        ? "bg-cnt-green hover:bg-[#15673a] text-white hover:shadow-lg"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    )}
+                  >
                     Réserver
                   </Button>
                 </div>
@@ -220,7 +361,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-cnt-blue mb-4">Pourquoi choisir la CNT ?</h2>
-            <div className="w-24 h-1 bg-cnt-yellow mx-auto rounded-full"></div>
+            <div className="w-24 h-1 bg-cnt-yellow mx-auto rounded-full" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto mt-12">
             <div className="flex flex-col items-center text-center group">
@@ -248,12 +389,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CALL TO ACTION SECTION */}
+      {/* CALL TO ACTION */}
       <section className="py-12 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-cnt-blue rounded-3xl p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
-            <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-48 h-48 rounded-full bg-cnt-green/10 blur-2xl pointer-events-none"></div>
+            <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-48 h-48 rounded-full bg-cnt-green/10 blur-2xl pointer-events-none" />
             <div className="relative z-10 md:w-2/3 text-center md:text-left mb-6 md:mb-0 md:pr-6">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">Prêt à voyager autrement ?</h2>
               <p className="text-white/80 text-sm md:text-base leading-relaxed max-w-lg mx-auto md:mx-0">
@@ -262,13 +403,17 @@ export default function Home() {
             </div>
             <div className="relative z-10 flex flex-row gap-3 justify-center md:justify-end w-full md:w-auto">
               <Button
-                onClick={() => router.push('/achat-billet')}
+                onClick={() => isSignedIn ? router.push('/achat-billet') : openSignIn()}
                 className="bg-cnt-yellow hover:bg-[#f3cc30] text-cnt-blue font-bold px-4 md:px-5 h-10 md:h-11 rounded-lg shadow-[0_0_15px_rgba(241,196,15,0.3)] transition-all hover:scale-105 active:scale-95 text-xs md:text-sm w-1/2 sm:w-auto group"
               >
                 <Ticket className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2 group-hover:-rotate-12 transition-transform duration-300" />
                 Réserver
               </Button>
-              <Button variant="outline" className="border-2 border-white/20 text-white hover:bg-white/15 hover:border-white/40 hover:text-white px-4 md:px-5 h-10 md:h-11 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 text-xs md:text-sm w-1/2 sm:w-auto bg-white/5 backdrop-blur-md">
+              <Button
+                onClick={() => openSignUp()}
+                variant="outline"
+                className="border-2 border-white/20 text-white hover:bg-white/15 hover:border-white/40 hover:text-white px-4 md:px-5 h-10 md:h-11 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 text-xs md:text-sm w-1/2 sm:w-auto bg-white/5 backdrop-blur-md"
+              >
                 S'inscrire
               </Button>
             </div>
@@ -289,10 +434,10 @@ export default function Home() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Liens Rapides</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-cnt-yellow transition">Acheter un billet</a></li>
+              <li><a href="/" className="hover:text-cnt-yellow transition">Acheter un billet</a></li>
               <li><a href="#" className="hover:text-cnt-yellow transition">Nos Destinations</a></li>
-              <li><a href="#" className="hover:text-cnt-yellow transition">Suivre mon bus</a></li>
-              <li><a href="#" className="hover:text-cnt-yellow transition">Espace Chauffeur</a></li>
+              <li><a href="/suivi" onClick={handleSuiviClick} className="hover:text-cnt-yellow transition">Suivre mon bus</a></li>
+              <li><a href="/mon-espace" className="hover:text-cnt-yellow transition">Mon Espace</a></li>
             </ul>
           </div>
           <div>
