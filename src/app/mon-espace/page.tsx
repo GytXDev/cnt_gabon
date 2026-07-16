@@ -219,7 +219,7 @@ export default function MonEspacePage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
             <h2 className="font-bold text-gray-800 flex items-center gap-2">
-              <Ticket className="w-5 h-5 text-cnt-blue" /> Historique de mes billets
+               Historique de mes billets
             </h2>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -268,7 +268,7 @@ export default function MonEspacePage() {
                       </div>
                       <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-500 flex-wrap">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {formatDate(ticket.date)}
+                          <Image src="/icons/calendar.png" alt="Date" width={16} height={16} className="w-3 h-3" /> {formatDate(ticket.date)}
                         </span>
                         <span>{ticket.type}</span>
                         <span className="font-semibold text-cnt-green">
