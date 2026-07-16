@@ -43,8 +43,12 @@ export async function GET(
           arrivee: qrMeta.arrivee,
           date: qrMeta.date,
           montant: qrMeta.montant,
+          mode: qrMeta.mode || 'bus',
+          type: qrMeta.type || 'Aller simple',
+          tid: qrMeta.tid || '',
         },
-        hasQrCode: !!qrMeta.qrCodeBase64,
+        qrCodeBase64: qrMeta?.qrCodeBase64 || null,
+        hasQrCode: !!qrMeta?.qrCodeBase64,
       },
     });
   } catch (error: any) {
