@@ -40,20 +40,25 @@ export default function HeroBookingWidget() {
   } | null>(null);
   const router = useRouter();
 
-  const GRAND_LIBREVILLE_CITIES = ['Libreville', 'Akanda', 'Owendo', 'Ntoum'];
+  const GRAND_LIBREVILLE_CITIES = ["Libreville", "Akanda", "Owendo", "Ntoum"];
 
   const getRouteCategory = (r: any) => {
     if (!r) return "";
-    const isGL = GRAND_LIBREVILLE_CITIES.includes(r.cityDepart?.nom) && 
-                 GRAND_LIBREVILLE_CITIES.includes(r.cityArrivee?.nom);
+    const isGL =
+      GRAND_LIBREVILLE_CITIES.includes(r.cityDepart?.nom) &&
+      GRAND_LIBREVILLE_CITIES.includes(r.cityArrivee?.nom);
     return isGL ? "Grand Libreville" : "Intérieur du Pays";
   };
 
   // La route exacte sélectionnée
   const selectedRoute = routes.find((r) => r.id.toString() === selectedRouteId);
 
-  const routesGL = routes.filter(r => getRouteCategory(r) === "Grand Libreville");
-  const routesInterieur = routes.filter(r => getRouteCategory(r) === "Intérieur du Pays");
+  const routesGL = routes.filter(
+    (r) => getRouteCategory(r) === "Grand Libreville",
+  );
+  const routesInterieur = routes.filter(
+    (r) => getRouteCategory(r) === "Intérieur du Pays",
+  );
 
   // Gérer le changement de route
   const handleRouteChange = (val: string) => {
@@ -132,59 +137,109 @@ export default function HeroBookingWidget() {
                 disabled={loadingRoutes}>
                 <SelectTrigger
                   className={cn(
-                    "w-full overflow-hidden pl-10 bg-gray-50/50 hover:bg-white focus:bg-white !h-[46px] border-gray-200 rounded-xl focus:ring-cnt-blue transition-colors text-sm",
+                    "w-full overflow-hidden pl-10 bg-gray-50/50 hover:bg-white focus:bg-white !h-[46px] border-gray-200 rounded-xl focus:ring-2 focus:ring-cnt-green/30 focus:border-cnt-green transition-all text-sm",
                     !selectedRouteId && "text-gray-400",
                   )}>
                   {loadingRoutes ? (
-                     <div className="flex items-center gap-2">
-                       <Loader2 className="w-4 h-4 animate-spin text-cnt-green" />
-                       <span>Chargement...</span>
-                     </div>
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-cnt-green" />
+                      <span>Chargement...</span>
+                    </div>
                   ) : (
                     <SelectValue placeholder="Sélectionner un trajet">
-                      {selectedRoute ? getRouteCategory(selectedRoute) : "Sélectionner un trajet"}
+                      {selectedRoute
+                        ? getRouteCategory(selectedRoute)
+                        : "Sélectionner un trajet"}
                     </SelectValue>
                   )}
                 </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false} side="bottom" className="max-h-60">
+
+                <SelectContent
+                  alignItemWithTrigger={false}
+                  side="bottom"
+                  className="max-h-72 p-1.5 rounded-2xl border border-gray-100 shadow-xl shadow-black/10 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-300">
                   {routes.length === 0 && !loadingRoutes ? (
-                    <div className="p-2 text-sm text-gray-500 text-center">
+                    <div className="p-4 text-sm text-gray-400 text-center">
                       Aucun trajet disponible
                     </div>
                   ) : (
                     <>
                       {routesGL.length > 0 && (
                         <SelectGroup>
-                          <SelectLabel className="bg-gray-50/95 font-bold text-cnt-blue sticky top-0 z-10 uppercase text-[10px] tracking-wider py-2 shadow-sm">GRAND LIBREVILLE</SelectLabel>
+                          <SelectLabel className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm font-bold text-cnt-blue sticky top-0 z-10 uppercase text-[10px] tracking-wider py-2 px-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cnt-blue" />
+                            Grand Libreville
+                          </SelectLabel>
                           {routesGL.map((r: any) => {
-                            const hasSchedules = r.schedules && r.schedules.length > 0;
+                            const hasSchedules =
+                              r.schedules && r.schedules.length > 0;
                             return (
-                              <SelectItem 
-                                key={r.id} 
-                                value={r.id.toString()} 
+                              <SelectItem
+                                key={r.id}
+                                value={r.id.toString()}
                                 disabled={!hasSchedules}
-                                className={cn("pl-6 py-2 transition-all", !hasSchedules && "text-gray-400 opacity-60 line-through decoration-gray-300")}
-                              >
-                                {r.cityDepart?.nom} - {r.cityArrivee?.nom}
+                                className={cn(
+                                  "group relative mx-1 my-0.5 rounded-lg pl-7 pr-3 py-2.5 text-sm transition-colors cursor-pointer",
+                                  "focus:bg-cnt-blue/10 focus:text-cnt-blue data-[state=checked]:bg-cnt-blue/10 data-[state=checked]:text-cnt-blue data-[state=checked]:font-medium",
+                                  hasSchedules
+                                    ? "text-gray-700 hover:bg-gray-50"
+                                    : "text-gray-300 cursor-not-allowed opacity-70",
+                                )}>
+                                <span className="flex items-center justify-between w-full">
+                                  <span className="truncate">
+                                    {r.cityDepart?.nom}{" "}
+                                    <span className="text-gray-300 mx-1">
+                                      →
+                                    </span>{" "}
+                                    {r.cityArrivee?.nom}
+                                  </span>
+                                  {!hasSchedules && (
+                                    <span className="ml-2 shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">
+                                      Non disponible
+                                    </span>
+                                  )}
+                                </span>
                               </SelectItem>
                             );
                           })}
                         </SelectGroup>
                       )}
-                      
+
                       {routesInterieur.length > 0 && (
                         <SelectGroup>
-                          <SelectLabel className="bg-gray-50/95 font-bold text-cnt-green sticky top-0 z-10 uppercase text-[10px] tracking-wider py-2 shadow-sm">INTÉRIEUR DU PAYS</SelectLabel>
+                          <SelectLabel className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm font-bold text-cnt-green sticky top-0 z-10 uppercase text-[10px] tracking-wider py-2 px-2 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cnt-green" />
+                            Intérieur du pays
+                          </SelectLabel>
                           {routesInterieur.map((r: any) => {
-                            const hasSchedules = r.schedules && r.schedules.length > 0;
+                            const hasSchedules =
+                              r.schedules && r.schedules.length > 0;
                             return (
-                              <SelectItem 
-                                key={r.id} 
-                                value={r.id.toString()} 
+                              <SelectItem
+                                key={r.id}
+                                value={r.id.toString()}
                                 disabled={!hasSchedules}
-                                className={cn("pl-6 py-2 transition-all", !hasSchedules && "text-gray-400 opacity-60 line-through decoration-gray-300")}
-                              >
-                                {r.cityDepart?.nom} - {r.cityArrivee?.nom}
+                                className={cn(
+                                  "group relative mx-1 my-0.5 rounded-lg pl-7 pr-3 py-2.5 text-sm transition-colors cursor-pointer",
+                                  "focus:bg-cnt-green/10 focus:text-cnt-green data-[state=checked]:bg-cnt-green/10 data-[state=checked]:text-cnt-green data-[state=checked]:font-medium",
+                                  hasSchedules
+                                    ? "text-gray-700 hover:bg-gray-50"
+                                    : "text-gray-300 cursor-not-allowed opacity-70",
+                                )}>
+                                <span className="flex items-center justify-between w-full">
+                                  <span className="truncate">
+                                    {r.cityDepart?.nom}{" "}
+                                    <span className="text-gray-300 mx-1">
+                                      →
+                                    </span>{" "}
+                                    {r.cityArrivee?.nom}
+                                  </span>
+                                  {!hasSchedules && (
+                                    <span className="ml-2 shrink-0 text-[9px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">
+                                      Non disponible
+                                    </span>
+                                  )}
+                                </span>
                               </SelectItem>
                             );
                           })}
@@ -219,7 +274,9 @@ export default function HeroBookingWidget() {
                   "w-full flex items-center pl-10 pr-3 bg-gray-50/50 h-[46px] border border-gray-200 rounded-xl text-sm transition-colors cursor-not-allowed overflow-hidden",
                   selectedRoute ? "text-gray-900" : "text-gray-400",
                 )}>
-                <span className="truncate w-full">{selectedRoute ? selectedRoute.cityDepart?.nom : "-"}</span>
+                <span className="truncate w-full">
+                  {selectedRoute ? selectedRoute.cityDepart?.nom : "-"}
+                </span>
               </div>
             </div>
           </div>
@@ -246,7 +303,9 @@ export default function HeroBookingWidget() {
                   "w-full flex items-center pl-10 pr-3 bg-gray-50/50 h-[46px] border border-gray-200 rounded-xl text-sm transition-colors cursor-not-allowed overflow-hidden",
                   selectedRoute ? "text-gray-900" : "text-gray-400",
                 )}>
-                <span className="truncate w-full">{selectedRoute ? selectedRoute.cityArrivee?.nom : "-"}</span>
+                <span className="truncate w-full">
+                  {selectedRoute ? selectedRoute.cityArrivee?.nom : "-"}
+                </span>
               </div>
             </div>
           </div>
