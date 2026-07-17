@@ -114,8 +114,8 @@ export default function HeroBookingWidget() {
 
       {/* SEARCH FORM */}
       <div className="bg-white/95 rounded-2xl shadow-2xl p-4 md:p-5 border border-white/20">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          <div className="space-y-1 relative md:col-span-4">
+        <div className="grid grid-cols-1 md:grid-cols-[repeat(24,minmax(0,1fr))] gap-3">
+          <div className="space-y-1 relative md:col-span-7">
             <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
               Type de trajet
             </Label>
@@ -253,7 +253,7 @@ export default function HeroBookingWidget() {
           </div>
 
           {/* ── DÉPART (Readonly) ── */}
-          <div className="space-y-1 relative md:col-span-2">
+          <div className="space-y-1 relative md:col-span-4">
             <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
               Départ
             </Label>
@@ -282,7 +282,7 @@ export default function HeroBookingWidget() {
           </div>
 
           {/* ── ARRIVÉE (Readonly) ── */}
-          <div className="space-y-1 relative md:col-span-2">
+          <div className="space-y-1 relative md:col-span-4">
             <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
               Arrivée
             </Label>
@@ -311,7 +311,7 @@ export default function HeroBookingWidget() {
           </div>
 
           {/* ── DATE & HEURE ── */}
-          <div className="space-y-1 relative md:col-span-2">
+          <div className="space-y-1 relative md:col-span-6">
             <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
               Date
             </Label>
@@ -335,7 +335,7 @@ export default function HeroBookingWidget() {
                         height={20}
                         className="mr-2.5 h-5 w-5 text-gray-500 opacity-80"
                       />
-                      <span className="truncate">
+                      <span className="truncate whitespace-nowrap overflow-hidden">
                         {selectedSchedule
                           ? `${new Date(selectedSchedule.dateStr).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} à ${selectedSchedule.schedule.heureDepart}`
                           : "Choisir date et heure"}
@@ -352,14 +352,14 @@ export default function HeroBookingWidget() {
                     height={20}
                     className="mr-2.5 h-5 w-5 text-gray-500 opacity-80"
                   />
-                  <span>Choisir date et heure</span>
+                  <span className="truncate whitespace-nowrap overflow-hidden">Choisir date et heure</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* ── ACTION ── */}
-          <div className="flex items-end md:col-span-2">
+          <div className="flex items-end md:col-span-3">
             <button
               onClick={handleBooking}
               disabled={!selectedSchedule}
