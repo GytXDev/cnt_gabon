@@ -11,6 +11,7 @@ import {
   uuid,
   varchar,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -43,6 +44,11 @@ export const userRoleEnum = pgEnum('user_role', [
   'passager',
   'chauffeur',
   'admin',
+]);
+
+export const scheduleStatusEnum = pgEnum('schedule_status', [
+  'actif',
+  'inactif',
 ]);
 
 // ─────────────────────────────────────────────
@@ -90,6 +96,7 @@ export const routes = pgTable('routes', {
   prixVip: integer('prix_vip').notNull(),
   distanceKm: real('distance_km'),
   dureeMins: integer('duree_mins'),
+  image: varchar('image', { length: 500 }),
   actif: boolean('actif').default(true),
 });
 
@@ -118,6 +125,7 @@ export const buses = pgTable('buses', {
   capacite: integer('capacite').default(50),
   statut: busStatusEnum('statut').default('inactif'),
   chauffeurId: uuid('chauffeur_id').references(() => users.id),
+  image: varchar('image', { length: 500 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -143,6 +151,29 @@ export const busPositions = pgTable(
 );
 
 // ─────────────────────────────────────────────
+// SCHEDULES — départs programmés
+// ─────────────────────────────────────────────
+
+export const schedules = pgTable('schedules', {
+  id: serial('id').primaryKey(),
+  routeId: integer('route_id')
+    .notNull()
+    .references(() => routes.id),
+  busId: uuid('bus_id')
+    .notNull()
+    .references(() => buses.id),
+  heureDepart: varchar('heure_depart', { length: 5 }).notNull(), // Format 'HH:MM'
+  heureArriveeEstimee: varchar('heure_arrivee_estimee', { length: 5 }).notNull(), // Format 'HH:MM'
+  joursActifs: jsonb('jours_actifs').default([]), // Kept to avoid data loss prompt in drizzle
+  dateVoyage: varchar('date_voyage', { length: 10 }).notNull().default('2026-07-17'), // Format 'YYYY-MM-DD'
+  statut: scheduleStatusEnum('statut').default('actif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  unqBusSlot: uniqueIndex('bus_date_time_idx').on(table.busId, table.dateVoyage, table.heureDepart),
+}));
+
+// ─────────────────────────────────────────────
 // TICKETS — billets achetés
 // ─────────────────────────────────────────────
 
@@ -160,6 +191,7 @@ export const tickets = pgTable('tickets', {
 
   // Trajet (soit route simple, soit pass)
   routeId: integer('route_id').references(() => routes.id),
+  scheduleId: integer('schedule_id').references(() => schedules.id),
   passTypeId: integer('pass_type_id').references(() => passTypes.id),
 
   classe: ticketClassEnum('classe').default('economique'),
@@ -236,6 +268,7 @@ export const routesRelations = relations(routes, ({ one, many }) => ({
     relationName: 'arrivee',
   }),
   tickets: many(tickets),
+  schedules: many(schedules),
 }));
 
 export const ticketsRelations = relations(tickets, ({ one }) => ({
@@ -246,6 +279,10 @@ export const ticketsRelations = relations(tickets, ({ one }) => ({
   route: one(routes, {
     fields: [tickets.routeId],
     references: [routes.id],
+  }),
+  schedule: one(schedules, {
+    fields: [tickets.scheduleId],
+    references: [schedules.id],
   }),
   passType: one(passTypes, {
     fields: [tickets.passTypeId],
@@ -259,6 +296,7 @@ export const busesRelations = relations(buses, ({ one, many }) => ({
     references: [users.id],
   }),
   positions: many(busPositions),
+  schedules: many(schedules),
 }));
 
 export const busPositionsRelations = relations(busPositions, ({ one }) => ({
@@ -266,6 +304,18 @@ export const busPositionsRelations = relations(busPositions, ({ one }) => ({
     fields: [busPositions.busId],
     references: [buses.id],
   }),
+}));
+
+export const schedulesRelations = relations(schedules, ({ one, many }) => ({
+  route: one(routes, {
+    fields: [schedules.routeId],
+    references: [routes.id],
+  }),
+  bus: one(buses, {
+    fields: [schedules.busId],
+    references: [buses.id],
+  }),
+  tickets: many(tickets),
 }));
 
 // ─────────────────────────────────────────────
@@ -282,3 +332,5 @@ export type NewTicket = typeof tickets.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type Bus = typeof buses.$inferSelect;
 export type BusPosition = typeof busPositions.$inferSelect;
+export type Schedule = typeof schedules.$inferSelect;
+export type NewSchedule = typeof schedules.$inferInsert;

@@ -22,11 +22,14 @@ import {
   AlertCircle,
   ShieldCheck,
   Smartphone,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { getAvailableSchedules } from "@/app/actions/tickets";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ---------- HELPERS ----------
 
@@ -395,12 +398,36 @@ function AchatBilletContent() {
   const mode = searchParams.get("mode") || "bus";
   const date = searchParams.get("date") || "";
   const montant = searchParams.get("montant") || "1500";
+  const heureDepartParam = searchParams.get("heureDepart") || "";
 
   const [ticketRef, setTicketRef] = useState("");
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState("");
 
   useEffect(() => {
     setTicketRef(generateTicketRef());
-  }, []);
+    
+    // Charger les schedules si depart, arrivee, date sont présents
+    if (depart && arrivee && date) {
+      setLoadingSchedules(true);
+      getAvailableSchedules(depart, arrivee, date).then((res) => {
+        setSchedules(res);
+        if (res.length > 0) {
+          const matched = res.find((s: any) => s.heureDepart === heureDepartParam);
+          if (matched) {
+            setSelectedScheduleId(matched.id.toString());
+          } else {
+            setSelectedScheduleId(res[0].id.toString());
+          }
+        }
+        setLoadingSchedules(false);
+      }).catch(err => {
+        console.error("Erreur horaires:", err);
+        setLoadingSchedules(false);
+      });
+    }
+  }, [depart, arrivee, date]);
 
   // Formulaire — pré-rempli depuis Clerk si disponible
   const [prenom, setPrenom] = useState("");
@@ -423,7 +450,6 @@ function AchatBilletContent() {
     "form",
   );
 
-  const isFormValid = prenom.trim() && nom.trim() && numero.trim().length >= 8;
 
   // Polling amélioré avec setTimeout récursif (évite l'empilement des requêtes lentes)
   const pollStatus = (transId: string) => {
@@ -493,6 +519,9 @@ function AchatBilletContent() {
               montant,
               passager: `${prenom} ${nom}`,
               tid: transId,
+              scheduleId: selectedScheduleId || "",
+              heureDeparture: selectedScheduleId ? schedules.find(s => s.id.toString() === selectedScheduleId)?.heureDepart : "",
+              heureArriveeEstimee: selectedScheduleId ? schedules.find(s => s.id.toString() === selectedScheduleId)?.heureArriveeEstimee : "",
             });
             setTimeout(
               () => router.push(`/achat-billet/download?${params.toString()}`),
@@ -536,9 +565,16 @@ function AchatBilletContent() {
     setTimeout(executePoll, 3000);
   };
 
+  const isFormValid = prenom.trim() && nom.trim() && numero.trim().length >= 8 && (!schedules.length || selectedScheduleId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      if (schedules.length > 0 && !selectedScheduleId) {
+        toast.error("Veuillez sélectionner un horaire de départ.");
+      }
+      return;
+    }
 
     if (!isSignedIn) {
       showCustomToast("error", "Connexion requise", "Veuillez vous connecter pour valider votre achat.", {
@@ -691,6 +727,37 @@ function AchatBilletContent() {
                 </div>
               </div>
             </div>
+
+            {/* Sélection de l'horaire (s'il y en a) */}
+            {(loadingSchedules || schedules.length > 0) && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Image src="/icons/clock.png" alt="Clock icon" width={20} height={20} className="w-4 h-4 text-cnt-blue" /> Horaire de départ
+                </h2>
+                {loadingSchedules ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Chargement des créneaux...
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {schedules.filter(s => s.id.toString() === selectedScheduleId).map(s => {
+                      const isDisabled = s.isPast || s.isFull || s.isMaintenance;
+                      let statusText = `${s.restantes} place${s.restantes > 1 ? 's' : ''} restante${s.restantes > 1 ? 's' : ''}`;
+                      if (s.isPast) statusText = "Départ passé";
+                      else if (s.isMaintenance) statusText = "Bus indisponible";
+                      else if (s.isFull) statusText = "Complet";
+                      
+                      return (
+                        <div key={s.id} className="flex justify-between items-center w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                          <span className="font-semibold text-gray-800">{s.heureDepart} <span className="text-gray-500 font-normal text-sm ml-1">(Arrivée ~{s.heureArriveeEstimee})</span></span>
+                          <span className={isDisabled ? "text-red-500 font-medium text-sm" : "text-cnt-green font-medium text-sm"}>{statusText}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Formulaire passager */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { tickets, routes, cities, passTypes } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { tickets, routes, cities, passTypes, schedules } from '@/lib/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       userId,
       heureDeparture,
       heureArriveeEstimee,
+      scheduleId,
     } = body;
 
     // Validation basique
@@ -81,6 +82,35 @@ export async function POST(request: Request) {
       if (routeResult.length > 0) routeId = routeResult[0].id;
     }
 
+    // --- VÉRIFICATION DE LA CAPACITÉ (SURVENTE) ---
+    if (scheduleId && date) {
+      const scheduleRec = await db.query.schedules.findFirst({
+        where: eq(schedules.id, parseInt(scheduleId)),
+        with: { bus: true }
+      });
+      if (scheduleRec && scheduleRec.bus) {
+        const capacity = scheduleRec.bus.capacite || 0;
+        const countRes = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(tickets)
+          .where(
+            and(
+              eq(tickets.scheduleId, parseInt(scheduleId)),
+              eq(tickets.statut, 'valide'),
+              sql`DATE(${tickets.dateVoyage}) = DATE(${date})`
+            )
+          );
+        const booked = countRes[0].count;
+        if (booked >= capacity) {
+          return NextResponse.json(
+            { success: false, message: 'Désolé, ce créneau est complet (survente évitée).' },
+            { status: 409 }
+          );
+        }
+      }
+    }
+    // ----------------------------------------------
+
     // Construction des données QR (vérifiables hors-ligne)
     const qrPayload = {
       ref: ticketRef,
@@ -128,6 +158,7 @@ export async function POST(request: Request) {
         heureDeparture: heureDeparture ? new Date(heureDeparture) : null,
         heureArriveeEstimee: heureArriveeEstimee ? new Date(heureArriveeEstimee) : null,
         dateVoyage: date ? new Date(date) : null,
+        scheduleId: scheduleId ? parseInt(scheduleId) : null,
         qrData,
         transactionId: transactionId || null,
         paymentProvider: 'singpay',
