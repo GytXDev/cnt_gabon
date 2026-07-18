@@ -1,8 +1,9 @@
 import { checkAdmin } from "./actions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Map, CalendarClock, LogOut, Bus } from "lucide-react";
+import { LayoutDashboard, Map, CalendarClock, Bus } from "lucide-react";
 import Image from "next/image";
+import { UserButton } from "@clerk/nextjs";
 
 export default async function AdminLayout({
   children,
@@ -20,7 +21,9 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-[#0A3055] text-white flex flex-col shrink-0 fixed inset-y-0 left-0 z-50">
-        <div className="p-5 flex items-center gap-3 border-b border-white/10">
+        <Link
+          href="/"
+          className="p-5 flex items-center gap-3 border-b border-white/10 hover:bg-white/5 transition-colors cursor-pointer">
           <Image
             src="/logo.png"
             alt="Logo"
@@ -29,7 +32,7 @@ export default async function AdminLayout({
             unoptimized
           />
           <span className="font-semibold text-lg">CNT Admin</span>
-        </div>
+        </Link>
 
         <nav className="flex-1 py-4 px-3 space-y-1">
           <Link
@@ -47,7 +50,13 @@ export default async function AdminLayout({
           <Link
             href="/admin/buses"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white text-sm">
-            <Image src="/icons/bus.png" alt="Bus" width={16} height={16} className="brightness-0 invert opacity-70" />
+            <Image
+              src="/icons/bus.png"
+              alt="Bus"
+              width={16}
+              height={16}
+              className="brightness-0 invert opacity-70"
+            />
             Gestion de Bus
           </Link>
           <Link
@@ -60,11 +69,9 @@ export default async function AdminLayout({
 
         <div className="p-4 border-t border-white/10 space-y-1">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/5">
-            <div className="w-8 h-8 rounded-full bg-cnt-yellow/20 border border-cnt-yellow/30 flex items-center justify-center text-cnt-yellow font-semibold text-sm">
-              {user.prenom ? user.prenom[0].toUpperCase() : "A"}
-            </div>
+            <UserButton afterSignOutUrl="/" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
+              <p className="text-sm font-medium truncate text-white">
                 {user.prenom} {user.nom}
               </p>
               <p className="text-xs text-white/40">Admin</p>
