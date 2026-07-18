@@ -14,7 +14,7 @@ export default async function AdminSchedulesPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Départs Programmés</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Tableau de suivi des départs d'aujourd'hui ({format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}).
+            Tableau de suivi des prochains départs (à partir d'aujourd'hui).
           </p>
         </div>
       </div>
@@ -25,6 +25,7 @@ export default async function AdminSchedulesPage() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-left w-16">Itinéraire</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Jour</th>
                 <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Départ</th>
                 <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Bus</th>
                 <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Capacité</th>
@@ -45,8 +46,13 @@ export default async function AdminSchedulesPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
+                      <span className="font-medium text-gray-600 text-sm capitalize">
+                        {s.dateVoyage ? format(new Date(s.dateVoyage), "EEE d MMM", { locale: fr }) : "Inconnu"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center gap-1.5 font-bold text-cnt-blue bg-blue-50 px-2 py-1 rounded-md text-xs">
-                        <Image src="/icons/clock.png" alt="Clock" width={10} height={10} className="w-3.5 h-3.5" /> {s.heureDepart}
+                        <Image src="/icons/clock.png" alt="Clock" width={10} height={10} className="w-3.5 h-3.5" unoptimized /> {s.heureDepart}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">

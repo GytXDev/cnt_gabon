@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { routes, schedules, tickets, buses, users, cities } from "@/lib/db/schema";
-import { eq, and, sql, desc, count } from "drizzle-orm";
+import { eq, and, sql, desc, count, inArray, gte } from "drizzle-orm";
 import { auth } from "@clerk/nextjs";
 import { revalidatePath } from "next/cache";
 import { v2 as cloudinary } from "cloudinary";
@@ -251,7 +251,11 @@ export async function getSchedulesCapacity(dateVoyage: string) {
 
   // Pour une vue Dashboard des capacités de la journée :
   const daySchedules = await db.query.schedules.findMany({
-    where: eq(schedules.statut, "actif"),
+    where: and(
+      eq(schedules.statut, "actif"),
+      gte(schedules.dateVoyage, dateVoyage) // Prochains départs inclus
+    ),
+    orderBy: [schedules.dateVoyage, schedules.heureDepart],
     with: {
       bus: true,
       route: {
@@ -263,6 +267,9 @@ export async function getSchedulesCapacity(dateVoyage: string) {
     },
   });
 
+  const scheduleIds = daySchedules.map((s) => s.id);
+  if (scheduleIds.length === 0) return [];
+
   // On compte les tickets valides par scheduleId pour cette date
   const ticketsCount = await db
     .select({
@@ -272,8 +279,8 @@ export async function getSchedulesCapacity(dateVoyage: string) {
     .from(tickets)
     .where(
       and(
-        eq(tickets.statut, "valide"),
-        sql`DATE(${tickets.dateVoyage}) = DATE(${dateVoyage})`
+        inArray(tickets.statut, ["valide", "utilise"]),
+        inArray(tickets.scheduleId, scheduleIds)
       )
     )
     .groupBy(tickets.scheduleId);
@@ -291,6 +298,7 @@ export async function getSchedulesCapacity(dateVoyage: string) {
       booked,
       capacity,
       restantes: capacity - booked,
+      dateVoyage: s.dateVoyage,
     };
   });
 

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { routes, schedules, tickets, buses } from "@/lib/db/schema";
-import { eq, and, sql, desc, count } from "drizzle-orm";
+import { eq, and, sql, desc, count, inArray } from "drizzle-orm";
 
 export async function getAllRoutes() {
   const foundRoutes = await db.query.routes.findMany({
@@ -77,6 +77,7 @@ export async function getAvailableSchedules(
 
   // 3. Calculer les places restantes pour chaque schedule
   const scheduleIds = daySchedules.map(s => s.id);
+  if (scheduleIds.length === 0) return [];
   
   const ticketsCount = await db
     .select({
@@ -86,9 +87,8 @@ export async function getAvailableSchedules(
     .from(tickets)
     .where(
       and(
-        eq(tickets.statut, "valide"),
-        sql`DATE(${tickets.dateVoyage}) = DATE(${dateVoyage})`
-        // et inclure les scheduleIds
+        inArray(tickets.statut, ["valide", "utilise"]),
+        inArray(tickets.scheduleId, scheduleIds)
       )
     )
     .groupBy(tickets.scheduleId);

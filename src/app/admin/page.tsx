@@ -109,10 +109,10 @@ export default async function AdminDashboard() {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">
-            Capacités & Remplissage du jour
+            Capacités & Remplissage (Prochains Départs)
           </h2>
           <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-md text-xs font-semibold uppercase">
-            {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+            À partir d'aujourd'hui
           </div>
         </div>
 
@@ -130,6 +130,9 @@ export default async function AdminDashboard() {
                 <tr className="border-b border-gray-200 bg-gray-50/50">
                   <th className="py-2.5 px-3 text-xs font-bold text-gray-500 uppercase tracking-wider rounded-tl-lg">
                     Trajet
+                  </th>
+                  <th className="py-2.5 px-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Jour
                   </th>
                   <th className="py-2.5 px-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Départ
@@ -158,6 +161,9 @@ export default async function AdminDashboard() {
                       className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-3 px-3 font-semibold text-gray-800 text-sm">
                         {c.route}
+                      </td>
+                      <td className="py-3 px-3 font-medium text-gray-600 text-sm capitalize">
+                        {c.dateVoyage ? format(new Date(c.dateVoyage), "EEE d MMM", { locale: fr }) : "Inconnu"}
                       </td>
                       <td className="py-3 px-3 font-semibold text-gray-600 text-sm">
                         {c.heureDepart}

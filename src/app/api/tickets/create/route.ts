@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tickets, routes, cities, passTypes, schedules } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -96,8 +96,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(tickets.scheduleId, parseInt(scheduleId)),
-              eq(tickets.statut, 'valide'),
-              sql`DATE(${tickets.dateVoyage}) = DATE(${date})`
+              inArray(tickets.statut, ['valide', 'utilise'])
             )
           );
         const booked = countRes[0].count;
