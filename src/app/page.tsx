@@ -171,7 +171,7 @@ export default function Home() {
                 className="object-contain mr-3"
                 unoptimized
               />
-              <span className="font-bold text-xl text-white">CNT Gabon</span>
+              <span className="font-bold text-xl text-white">CNT</span>
             </div>
             <p className="text-sm opacity-80">
               La Compagnie Nationale de Transport s'engage à révolutionner la

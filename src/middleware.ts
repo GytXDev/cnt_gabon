@@ -1,9 +1,9 @@
 import { authMiddleware } from '@clerk/nextjs';
 
 export default authMiddleware({
-  // Routes accessibles sans connexion
   publicRoutes: [
     '/',
+    '/horaires',
     '/achat-billet',
     '/achat-billet/download',
     '/api/singpay/(.*)',

@@ -146,7 +146,7 @@ export default function MonEspacePage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
               <Image src="/logo.png" alt="CNT" width={36} height={36} className="object-contain" unoptimized />
-              <span className="font-bold text-white text-lg">CNT Gabon</span>
+              <span className="font-bold text-white text-lg">CNT</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
@@ -168,7 +168,7 @@ export default function MonEspacePage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Bonjour, {user?.firstName || 'Passager'} 👋
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Bienvenue dans votre espace personnel CNT Gabon</p>
+          <p className="text-gray-500 text-sm mt-1">Bienvenue dans votre espace personnel CNT</p>
         </div>
 
         {/* STATS CARDS */}

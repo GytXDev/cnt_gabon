@@ -182,10 +182,42 @@ export default function AdminBusesPage() {
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-6 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase w-16 text-center">Image</th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase">Matricule</th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Capacité</th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Statut</th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-right w-16">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(4)].map((_, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="py-2.5 px-4 text-center">
+                      <Skeleton className="w-12 h-10 rounded-md mx-auto bg-gray-100" />
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <div className="flex flex-col gap-1.5">
+                        <Skeleton className="w-24 h-4 rounded bg-gray-100" />
+                        <Skeleton className="w-16 h-3 rounded bg-gray-100" />
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-4 text-center">
+                      <Skeleton className="w-16 h-4 rounded mx-auto bg-gray-100" />
+                    </td>
+                    <td className="py-2.5 px-4 text-center">
+                      <Skeleton className="w-16 h-6 rounded-full mx-auto bg-gray-100" />
+                    </td>
+                    <td className="py-2.5 px-4 text-right">
+                      <Skeleton className="w-6 h-6 rounded ml-auto bg-gray-100" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -84,39 +84,9 @@
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Route waypoint path Libreville -> Lambaréné
-    var routeWaypoints = [
-      [0.3924, 9.4536],
-      [0.2, 9.8],
-      [0.0, 10.0],
-      [-0.3, 10.1],
-      [-0.7, 10.2333]
-    ];
-
-    // Styled polyline representing the bus line (CNT Blue / Green gradient feel)
-    L.polyline(routeWaypoints, {
-      color: '#0A3055',
-      weight: 5,
-      opacity: 0.75,
-      lineJoin: 'round'
-    }).addTo(map);
-
-    // Also add Libreville and Lambaréné markers as start/end
-    L.circleMarker([0.3924, 9.4536], {
-      radius: 6,
-      fillColor: '#1E824C', // CNT Green
-      color: '#ffffff',
-      weight: 2,
-      fillOpacity: 1
-    }).addTo(map).bindPopup("<b>Libreville</b><br>Point de départ");
-
-    L.circleMarker([-0.7, 10.2333], {
-      radius: 6,
-      fillColor: '#F1C40F', // CNT Yellow
-      color: '#ffffff',
-      weight: 2,
-      fillOpacity: 1
-    }).addTo(map).bindPopup("<b>Lambaréné</b><br>Destination");
+    var routePolyline = null;
+    var startMarker = null;
+    var endMarker = null;
 
     // Bus Tracking custom image icon
     var busIcon = L.icon({
@@ -152,12 +122,41 @@
       map.panTo([lat, lng], { animate: true, duration: 1.5 });
     };
 
-    // Load initial parameters from the query string
-    var urlParams = new URLSearchParams(window.location.search);
-    var initLat = parseFloat(urlParams.get('lat') || 0.3924);
-    var initLng = parseFloat(urlParams.get('lng') || 9.4536);
-    var initSpeed = parseFloat(urlParams.get('speed') || 60);
-    window.updateBusPosition(initLat, initLng, initSpeed);
+    window.initRoute = function(waypoints, departureName, arrivalName) {
+      if (!waypoints || waypoints.length === 0) return;
+      
+      if (routePolyline) map.removeLayer(routePolyline);
+      if (startMarker) map.removeLayer(startMarker);
+      if (endMarker) map.removeLayer(endMarker);
+
+      routePolyline = L.polyline(waypoints, {
+        color: '#0A3055',
+        weight: 5,
+        opacity: 0.75,
+        lineJoin: 'round'
+      }).addTo(map);
+
+      var startPt = waypoints[0];
+      var endPt = waypoints[waypoints.length - 1];
+
+      startMarker = L.circleMarker(startPt, {
+        radius: 6,
+        fillColor: '#1E824C', // CNT Green
+        color: '#ffffff',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(map).bindPopup("<b>" + departureName + "</b><br>Départ");
+
+      endMarker = L.circleMarker(endPt, {
+        radius: 6,
+        fillColor: '#F1C40F', // CNT Yellow
+        color: '#ffffff',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(map).bindPopup("<b>" + arrivalName + "</b><br>Arrivée");
+
+      map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+    };
   </script>
 </body>
 </html>

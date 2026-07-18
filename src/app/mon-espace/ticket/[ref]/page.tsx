@@ -217,7 +217,7 @@ export default function TicketDetailsPage() {
                     <div className="flex items-center gap-2">
                       <img src="/logo.png" alt="CNT" className="w-7 h-7 object-contain" />
                       <div>
-                        <p className="font-bold text-xs leading-tight text-white">CNT Gabon</p>
+                        <p className="font-bold text-xs leading-tight text-white">CNT</p>
                         <p className="text-white/70 text-[9px] uppercase tracking-widest">Billet de Transport</p>
                       </div>
                     </div>
@@ -317,7 +317,7 @@ export default function TicketDetailsPage() {
                   style={{ backgroundColor: '#f9fafb', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                   <p className="text-[8px] text-gray-400">Billet non remboursable. Présentez-vous 30 min avant le départ.</p>
                   <p className="text-[8px] text-gray-400 mt-0.5 font-medium">
-                    CNT Gabon — Voyagez l'esprit tranquille.
+                    CNT Voyagez l'esprit tranquille.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { busPositions, buses } from '@/lib/db/schema';
+import { busPositions, busPositionsHistory, buses } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -63,6 +63,9 @@ export async function POST(
       );
     }
 
+    const now = new Date();
+
+    // 1. Upsert la position courante
     const [pos] = await db
       .insert(busPositions)
       .values({
@@ -70,9 +73,27 @@ export async function POST(
         lat: parseFloat(lat),
         lng: parseFloat(lng),
         speedKmh: speedKmh ? parseFloat(speedKmh) : null,
-        timestamp: new Date(),
+        timestamp: now,
+      })
+      .onConflictDoUpdate({
+        target: busPositions.busId,
+        set: {
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          speedKmh: speedKmh ? parseFloat(speedKmh) : null,
+          timestamp: now,
+        },
       })
       .returning();
+
+    // 2. Insérer l'historique
+    await db.insert(busPositionsHistory).values({
+      busId,
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      speedKmh: speedKmh ? parseFloat(speedKmh) : null,
+      timestamp: now,
+    });
 
     return NextResponse.json({ success: true, position: pos });
   } catch (error: any) {

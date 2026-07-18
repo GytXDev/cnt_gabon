@@ -156,7 +156,7 @@ function DownloadTicketContent() {
   const handleShare = async () => {
     const url = `${window.location.origin}/api/tickets/verify?ref=${ref}`;
     if (navigator.share) {
-      await navigator.share({ title: `Billet CNT — ${ref}`, text: `Mon billet CNT Gabon: ${depart} → ${arrivee}`, url });
+      await navigator.share({ title: `Billet CNT — ${ref}`, text: `Mon billet CNT: ${depart} → ${arrivee}`, url });
     } else {
       await navigator.clipboard.writeText(url);
       toast.success('Lien de partage copié !');
@@ -245,7 +245,7 @@ function DownloadTicketContent() {
                   <div className="flex items-center gap-2">
                     <img src="/logo.png" alt="CNT" className="w-7 h-7 object-contain" />
                     <div>
-                      <p className="font-bold text-xs leading-tight text-white">CNT Gabon</p>
+                      <p className="font-bold text-xs leading-tight text-white">CNT</p>
                       <p className="text-white/70 text-[9px] uppercase tracking-widest">Billet de Transport</p>
                     </div>
                   </div>

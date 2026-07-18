@@ -1,12 +1,12 @@
 /**
- * Script de seed — Données initiales CNT Gabon
+ * Script de seed — Données initiales CNT
  * Exécuter avec: npx tsx src/lib/db/seed.ts
  */
 import { db } from './index';
 import { cities, routes, passTypes } from './schema';
 
 async function seed() {
-  console.log('🌱 Seeding CNT Gabon database...');
+  console.log('Seeding CNT database...');
 
   // ── 1. VILLES ──────────────────────────────────────────────────────────────
   console.log('  → Inserting cities...');

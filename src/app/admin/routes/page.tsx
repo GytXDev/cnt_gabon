@@ -24,6 +24,7 @@ import {
   Upload,
   Save,
   Bus,
+  Search,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -64,11 +65,31 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+const highlightMatch = (text: string | undefined, query: string) => {
+  if (!text) return "";
+  if (!query) return text;
+  const parts = text.split(new RegExp(`(${query})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5 font-medium">
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
 export default function AdminRoutesPage() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState("");
   const router = useRouter();
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -312,21 +333,72 @@ export default function AdminRoutesPage() {
             Gérez les lignes uniques, leurs horaires et images associées.
           </p>
         </div>
-        <button
-          onClick={() => router.push("/admin/routes/new")}
-          className="bg-cnt-blue hover:bg-blue-900 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors">
-          <Plus className="w-4 h-4" />
-          Nouveau trajet
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un trajet..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cnt-blue/20 focus:border-cnt-blue transition-colors"
+            />
+          </div>
+          <button
+            onClick={() => router.push("/admin/routes/new")}
+            className="w-full sm:w-auto bg-cnt-blue hover:bg-blue-900 text-white font-medium px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm transition-colors">
+            <Plus className="w-4 h-4" />
+            Nouveau trajet
+          </button>
+        </div>
       </div>
 
       {/* Tableau */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-6 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase w-16 text-center">
+                    Image
+                  </th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase">
+                    Itinéraire
+                  </th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-right">
+                    Prix
+                  </th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">
+                    Statut
+                  </th>
+                  <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-right w-16">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(4)].map((_, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="py-3 px-4">
+                      <Skeleton className="w-12 h-10 rounded mx-auto bg-gray-100" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="w-32 h-4 rounded bg-gray-100" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="w-20 h-4 rounded ml-auto bg-gray-100" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="w-16 h-6 rounded-full mx-auto bg-gray-100" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="w-6 h-6 rounded ml-auto bg-gray-100" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -351,7 +423,12 @@ export default function AdminRoutesPage() {
                 </tr>
               </thead>
               <tbody>
-                {routes.map((r) => (
+                {routes
+                  .filter((r) => {
+                    const routeStr = `${r.cityDepart?.nom} ${r.cityArrivee?.nom}`.toLowerCase();
+                    return routeStr.includes(search.toLowerCase());
+                  })
+                  .map((r) => (
                   <tr key={r.id} className="border-b hover:bg-gray-50/50">
                     <td className="py-3 px-4 text-center">
                       {r.image ? (
@@ -372,7 +449,7 @@ export default function AdminRoutesPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm text-gray-900">
-                        {r.cityDepart?.nom} → {r.cityArrivee?.nom}
+                        {highlightMatch(r.cityDepart?.nom, search)} → {highlightMatch(r.cityArrivee?.nom, search)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -430,12 +507,15 @@ export default function AdminRoutesPage() {
                     </td>
                   </tr>
                 ))}
-                {routes.length === 0 && (
+                {routes.filter((r) => {
+                    const routeStr = `${r.cityDepart?.nom} ${r.cityArrivee?.nom}`.toLowerCase();
+                    return routeStr.includes(search.toLowerCase());
+                  }).length === 0 && (
                   <tr>
                     <td
                       colSpan={5}
                       className="py-12 text-center text-gray-500 text-sm">
-                      Aucun trajet
+                      Aucun trajet trouvé
                     </td>
                   </tr>
                 )}

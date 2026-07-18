@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { checkIsAdmin } from '@/app/actions/user';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
-export default function Navbar() {
+interface NavbarProps {
+  alwaysSolid?: boolean;
+}
+
+export default function Navbar({ alwaysSolid = false }: NavbarProps) {
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
   const { openSignUp, openSignIn } = useClerk();
@@ -40,24 +45,32 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${isScrolled || mobileMenuOpen ? 'bg-cnt-blue/95 backdrop-blur-md shadow-lg border-b border-white/10 py-2' : 'bg-transparent py-4'}`}>
+      <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${alwaysSolid || isScrolled || mobileMenuOpen ? 'bg-cnt-blue/95 backdrop-blur-md shadow-lg border-b border-white/10 py-2' : 'bg-transparent py-4'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <Link href="/" className="flex items-center cursor-pointer transition-transform hover:scale-105">
               <Image src="/logo.png" alt="Logo" width={42} height={42} className="object-contain mr-2.5 sm:mr-3" unoptimized />
-              <span className="font-bold text-xl sm:text-2xl text-white tracking-tight drop-shadow-md">CNT Gabon</span>
-            </div>
+              <span className="font-bold text-xl sm:text-2xl text-white tracking-tight drop-shadow-md">CNT</span>
+            </Link>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
               <a href="/" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Accueil</a>
               <a href="/horaires" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Trajets &amp; Horaires</a>
               <a href="/suivi" onClick={handleSuiviClick} className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Suivi GPS</a>
-              <div className="flex items-center space-x-4 ml-4 border-l border-white/20 pl-6">
-                {isLoaded && isSignedIn ? (
+              {isLoaded && isSignedIn && (
+                <a href="/chats" className="text-white/90 hover:text-cnt-yellow font-medium transition-colors drop-shadow">Mes Chats</a>
+              )}
+              <div className="flex items-center space-x-4 ml-4 border-l border-white/20 pl-6 h-10">
+                {!isLoaded ? (
+                  <div className="flex items-center space-x-4">
+                    <div className="w-24 h-5 bg-white/10 animate-pulse rounded" />
+                    <div className="w-32 h-10 bg-white/10 animate-pulse rounded-md" />
+                  </div>
+                ) : isSignedIn ? (
                   <a href={isAdmin ? "/admin" : "/mon-espace"} className="flex items-center gap-2 text-white font-medium hover:text-cnt-yellow transition-colors">
                     <div className="w-7 h-7 rounded-full bg-cnt-yellow/20 border border-cnt-yellow flex items-center justify-center text-cnt-yellow text-xs font-bold">
-                      {user.firstName?.[0]?.toUpperCase() || 'U'}
+                      {user?.firstName?.[0]?.toUpperCase() || 'U'}
                     </div>
                     {isAdmin ? "Administration" : "Mon Espace"}
                   </a>
@@ -103,11 +116,19 @@ export default function Navbar() {
             <a href="/" className="block text-white hover:text-cnt-yellow font-semibold transition-colors py-2.5 border-b border-white/5" onClick={() => setMobileMenuOpen(false)}>Accueil</a>
             <a href="/horaires" className="block text-white hover:text-cnt-yellow font-semibold transition-colors py-2.5 border-b border-white/5" onClick={() => setMobileMenuOpen(false)}>Trajets &amp; Horaires</a>
             <a href="/suivi" className="block text-white hover:text-cnt-yellow font-semibold transition-colors py-2.5 border-b border-white/5" onClick={(e) => { setMobileMenuOpen(false); handleSuiviClick(e); }}>Suivi GPS</a>
-            <div className="pt-4 space-y-3">
-              {isLoaded && isSignedIn ? (
+            {isLoaded && isSignedIn && (
+              <a href="/chats" className="block text-white hover:text-cnt-yellow font-semibold transition-colors py-2.5 border-b border-white/5" onClick={() => setMobileMenuOpen(false)}>Mes Chats</a>
+            )}
+            <div className="pt-4 space-y-3 min-h-[120px]">
+              {!isLoaded ? (
+                <div className="flex flex-col gap-3 pt-2">
+                  <div className="w-1/3 h-6 bg-white/10 animate-pulse rounded" />
+                  <div className="w-full h-12 bg-white/10 animate-pulse rounded-xl" />
+                </div>
+              ) : isSignedIn ? (
                 <a href={isAdmin ? "/admin" : "/mon-espace"} className="flex items-center gap-3 text-white font-semibold hover:text-cnt-yellow transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>
                   <div className="w-8 h-8 rounded-full bg-cnt-yellow/20 border-2 border-cnt-yellow flex items-center justify-center text-cnt-yellow text-sm font-bold">
-                    {user.firstName?.[0]?.toUpperCase() || 'U'}
+                    {user?.firstName?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <span>{isAdmin ? "Administration" : "Mon Espace"}</span>
                 </a>

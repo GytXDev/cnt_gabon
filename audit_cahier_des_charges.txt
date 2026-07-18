@@ -1,7 +1,7 @@
 Bonjour, voici la liste des choses qui sont faites et pas faites.
 
 ================================================================================
-AUDIT DE L'IMPLÉMENTATION DU CAHIER DES CHARGES - APPLICATION CNT GABON
+AUDIT DE L'IMPLÉMENTATION DU CAHIER DES CHARGES - APPLICATION CNT
 ================================================================================
 
 1. BILLETTERIE & ACHAT DE TICKETS

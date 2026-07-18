@@ -222,7 +222,7 @@ function TicketPreview({
               />
               <div>
                 <p className="text-white font-bold text-sm leading-tight">
-                  CNT Gabon
+                  CNT
                 </p>
                 <p className="text-white/60 text-[10px] uppercase tracking-widest">
                   Billet de Transport

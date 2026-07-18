@@ -2,6 +2,7 @@ import { getSchedulesCapacity } from "../actions";
 import { Clock, Users, ArrowRight, Bus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import Image from "next/image";
 
 export default async function AdminSchedulesPage() {
   const today = new Date().toISOString().split('T')[0];
@@ -11,7 +12,7 @@ export default async function AdminSchedulesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Départs Programmés</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Départs Programmés</h1>
           <p className="text-gray-500 text-sm mt-1">
             Tableau de suivi des départs d'aujourd'hui ({format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}).
           </p>
@@ -23,13 +24,13 @@ export default async function AdminSchedulesPage() {
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Itinéraire</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Départ</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Bus</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Capacité</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Places Vendues</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Places Restantes</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Taux Remplissage</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-left w-16">Itinéraire</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Départ</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Bus</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Capacité</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Places Vendues</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Places Restantes</th>
+                <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase text-center">Taux Remplissage</th>
               </tr>
             </thead>
             <tbody>
@@ -39,13 +40,13 @@ export default async function AdminSchedulesPage() {
                 return (
                   <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
                     <td className="py-3 px-4">
-                      <span className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm flex items-center gap-2">
                         {s.route}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center gap-1.5 font-bold text-cnt-blue bg-blue-50 px-2 py-1 rounded-md text-xs">
-                        <Clock className="w-3.5 h-3.5" /> {s.heureDepart}
+                        <Image src="/icons/clock.png" alt="Clock" width={10} height={10} className="w-3.5 h-3.5" /> {s.heureDepart}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">

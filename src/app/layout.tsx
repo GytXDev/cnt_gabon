@@ -9,7 +9,7 @@ import { frFR } from '@clerk/localizations';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'CNT Gabon — Billetterie en ligne',
+  title: 'CNT Billetterie en ligne',
   description: 'Achetez vos billets de transport en ligne pour tous vos trajets au Gabon. Paiement sécurisé par Mobile Money.',
   icons: {
     icon: [

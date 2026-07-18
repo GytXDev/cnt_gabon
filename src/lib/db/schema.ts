@@ -130,11 +130,30 @@ export const buses = pgTable('buses', {
 });
 
 // ─────────────────────────────────────────────
-// BUS_POSITIONS — historique GPS
+// BUS_POSITIONS — position actuelle du bus
 // ─────────────────────────────────────────────
 
 export const busPositions = pgTable(
   'bus_positions',
+  {
+    id: serial('id').primaryKey(),
+    busId: uuid('bus_id')
+      .notNull()
+      .unique()
+      .references(() => buses.id),
+    lat: real('lat').notNull(),
+    lng: real('lng').notNull(),
+    speedKmh: real('speed_kmh'),
+    timestamp: timestamp('timestamp').defaultNow(),
+  }
+);
+
+// ─────────────────────────────────────────────
+// BUS_POSITIONS_HISTORY — historique GPS
+// ─────────────────────────────────────────────
+
+export const busPositionsHistory = pgTable(
+  'bus_positions_history',
   {
     id: serial('id').primaryKey(),
     busId: uuid('bus_id')
@@ -146,7 +165,7 @@ export const busPositions = pgTable(
     timestamp: timestamp('timestamp').defaultNow(),
   },
   (table) => ({
-    busTimestampIdx: index('bus_timestamp_idx').on(table.busId, table.timestamp),
+    busTimestampIdx: index('bus_history_timestamp_idx').on(table.busId, table.timestamp),
   })
 );
 
@@ -221,15 +240,16 @@ export const tickets = pgTable('tickets', {
 });
 
 // ─────────────────────────────────────────────
-// CHAT_MESSAGES — tchat inter-passagers par route+date
+// CHAT_MESSAGES — tchat inter-passagers par créneau (scheduleId)
 // ─────────────────────────────────────────────
 
 export const chatMessages = pgTable(
   'chat_messages',
   {
     id: serial('id').primaryKey(),
-    // Identifiant de la salle = routeId + dateVoyage (ex: "12_2025-01-15")
-    roomId: varchar('room_id', { length: 50 }).notNull(),
+    scheduleId: integer('schedule_id')
+      .notNull()
+      .references(() => schedules.id),
     senderId: uuid('sender_id').references(() => users.id),
     senderNom: varchar('sender_nom', { length: 200 }), // nom affiché même si guest
     contenu: text('contenu').notNull(),
@@ -238,7 +258,7 @@ export const chatMessages = pgTable(
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => ({
-    roomIdx: index('chat_room_idx').on(table.roomId, table.createdAt),
+    scheduleIdx: index('chat_schedule_idx').on(table.scheduleId, table.createdAt),
   })
 );
 
@@ -306,6 +326,13 @@ export const busPositionsRelations = relations(busPositions, ({ one }) => ({
   }),
 }));
 
+export const busPositionsHistoryRelations = relations(busPositionsHistory, ({ one }) => ({
+  bus: one(buses, {
+    fields: [busPositionsHistory.busId],
+    references: [buses.id],
+  }),
+}));
+
 export const schedulesRelations = relations(schedules, ({ one, many }) => ({
   route: one(routes, {
     fields: [schedules.routeId],
@@ -332,5 +359,6 @@ export type NewTicket = typeof tickets.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type Bus = typeof buses.$inferSelect;
 export type BusPosition = typeof busPositions.$inferSelect;
+export type BusPositionHistory = typeof busPositionsHistory.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type NewSchedule = typeof schedules.$inferInsert;
